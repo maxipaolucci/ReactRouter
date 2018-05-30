@@ -1,5 +1,8 @@
 import React, { Component } from 'react';
 import { Field, reduxForm } from 'redux-form';
+import { Link } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { createPost } from '../actions';
 
 class PostsNew extends Component {
 
@@ -15,21 +18,36 @@ class PostsNew extends Component {
      * so field can handler the events on the input
      */
     renderField(field) {
+        const { meta : {touched, error} } = field; //this line is a neested destructuring and geting out touched and error from field.meta.touched and field.meta.error
+        const className= `form-group ${touched && error ? 'has-danger' : ''}`;
+        
         return (
-            <div className="form-group">
+            <div className={className}>
                 <label>{field.label}</label>
                 <input
                     className="form-control"
                     type="text"
                     { ...field.input }
                 />
+                <div className="text-help">
+                    { touched ? error :  '' }
+                </div>
             </div>
         );
     }
 
+    onSubmit(values) {
+        this.props.createPost(values, () => {
+            this.props.history.push('/'); //history was populated in this component props by the Router component in the src/index.js file when we attached thsi component to a route
+        });
+    }
+
     render() {
+        const { handleSubmit } = this.props; //this handleSubmit prop was added by reduxForm when we bind it to the component at the bottom of this file.
         return (
-            <form>
+            // when the user submit the form reduxform is going to check that the state of the form is valid, via setting the fields in touched state and then if all good
+            // call the onSubmit callback
+            <form onSubmit={handleSubmit(this.onSubmit.bind(this))} > 
                 <Field 
                     label="Title"
                     name="title" 
@@ -47,6 +65,9 @@ class PostsNew extends Component {
                     name="content" 
                     component={ this.renderField }
                 />
+
+                <button type="submit" className="btn btn-primary">Submit</button>
+                <Link to='/' className="btn btn-danger">Cancel</Link>
             </form>
         );
     }
@@ -65,7 +86,7 @@ function validate(values) {
         errors.title = "Enter a title!";
     }
 
-    if (values.title.lenght <= 3) {
+    if (values.title && values.title.length <= 3) {
         errors.title = "Enter a title longer than 3 characters!";
     }
 
@@ -85,4 +106,6 @@ function validate(values) {
 export default reduxForm({
     validate,
     form: 'PostsNewForm' //this map allows to put several forms in the same component . Make sure that PostsNewForm string is unique
-})(PostsNew);
+})(
+    connect(null, { createPost })(PostsNew) //this is how we use connect in a reduxForm way
+);
